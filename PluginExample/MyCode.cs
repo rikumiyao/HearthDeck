@@ -6,6 +6,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Collections.ObjectModel;
+using System.IO;
 using Hearthstone_Deck_Tracker;
 using Hearthstone_Deck_Tracker.API;
 using Hearthstone_Deck_Tracker.Enums;
@@ -41,10 +42,39 @@ namespace PluginExample
         }
         public static void Load() 
 		{
-			_player = null;
-
-			// A border to put around the text block
-			Border blockBorder = new Border();
+            _player = null;
+            //String[] fileNames = Directory.GetFiles("Sample Decks", "*.txt");
+            /* TODO: Add automatic deck importing of Sample Decks after newest HDT Update
+            foreach (String fileName in fileNames)
+            {
+                try
+                {
+                    Deck deck = null;
+                    if (fileName.EndsWith(".txt"))
+                    {
+                        using (var sr = new StreamReader(fileName))
+                            deck = Core.MainWindow.ParseCardString(sr.ReadToEnd());
+                        
+                    }
+                    else if (fileName.EndsWith(".xml"))
+                    {
+                        deck = XmlManager<Deck>.Load(fileName);
+                        //not all required information is saved in xml
+                        foreach (var card in deck.Cards)
+                            card.Load();
+                        TagControlEdit.SetSelectedTags(deck.Tags);
+                    }
+                    SetNewDeck(deck);
+                    if (Config.Instance.AutoSaveOnImport)
+                        SaveDeckWithOverwriteCheck();
+                }
+                catch (Exception ex)
+                {
+                    Logger.WriteLine("Error getting deck from file: \n" + ex, "Import");
+                }
+            }*/ 
+            // A border to put around the text block
+            Border blockBorder = new Border();
 			blockBorder.BorderBrush = Brushes.Black;
 			blockBorder.BorderThickness = new Thickness(1.0);
 			blockBorder.Padding = new Thickness(8.0);
@@ -85,17 +115,20 @@ namespace PluginExample
             GameEvents.OnGameEnd.Add(analyzeDeck);
 		}
 
+
+
         public static void analyzeDeck()
         {
             DeckList decklist = DeckList.Instance;
-            ObservableCollection<Deck> decks = decklist.Decks;
+            List<Deck> decks = decklist.Decks.Where( 
+                d=>d.Name.Length>8 && d.Name.Substring(0, 9).Equals("STANDARD_", StringComparison.OrdinalIgnoreCase)).ToList();
             if (Opponent != null)
             {
                 List<Card> revealedCards = Opponent.DisplayRevealedCards.Where(x => !x.IsCreated).ToList();
                 double maxScore = -1;
                 string bestDeck = null;
                 string usedClass = Opponent.Class;
-                foreach (Deck d in Decks)
+                foreach (Deck d in decks)
                 {
                     List<Card> deckCards = d.Cards.ToList();
                     if (d.Class.Equals(usedClass))
@@ -104,13 +137,13 @@ namespace PluginExample
                         if (score > maxScore)
                         {
                             maxScore = score;
-                            bestDeck = d.Name;
+                            bestDeck = d.Name.Substring(9);
                         }
-                        Logger.WriteLine(d.Name + " " + maxScore);
+                        Logger.WriteLine(d.Name + " " + score);
                     }
                     
                 }
-                _info.Text = "Your opponent was playing" + bestDeck;
+                _info.Text = "Your opponent was playing " + bestDeck;
             }
         }
 
@@ -118,6 +151,10 @@ namespace PluginExample
         {
             HashSet<Card> cards = new HashSet<Card>();
             foreach(Card c in deck)
+            {
+                cards.Add(c);
+            }
+            foreach(Card c in revealed)
             {
                 cards.Add(c);
             }
