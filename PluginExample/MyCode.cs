@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Collections.ObjectModel;
 using Hearthstone_Deck_Tracker;
 using Hearthstone_Deck_Tracker.API;
 using Hearthstone_Deck_Tracker.Enums;
@@ -28,9 +29,17 @@ namespace PluginExample
 		{
 			// Get the Entity representing the player, there is also the equivalent for the Opponent
 			get { return Entities == null ? null : Entities.First(x => x.IsPlayer); }
-		}		
-
-		public static void Load() 
+		}
+        private static Player Opponent
+        {
+            get { return Core.Game.Opponent; }
+        }
+        
+        private static ObservableCollection<Deck> Decks
+        {
+            get { return DeckList.Instance.Decks; }
+        }
+        public static void Load() 
 		{
 			_player = null;
 
@@ -72,30 +81,94 @@ namespace PluginExample
 
 			// Register methods to be called when GameEvents occur
 			GameEvents.OnGameStart.Add(NewGame);
-			GameEvents.OnPlayerDraw.Add(HandInfo);
+			GameEvents.OnPlayerDraw.Add(DeckInfo);
+            GameEvents.OnGameEnd.Add(analyzeDeck);
 		}
+
+        public static void analyzeDeck()
+        {
+            DeckList decklist = DeckList.Instance;
+            ObservableCollection<Deck> decks = decklist.Decks;
+            if (Opponent != null)
+            {
+                List<Card> revealedCards = Opponent.DisplayRevealedCards.Where(x => !x.IsCreated).ToList();
+                double maxScore = -1;
+                string bestDeck = null;
+                string usedClass = Opponent.Class;
+                foreach (Deck d in Decks)
+                {
+                    List<Card> deckCards = d.Cards.ToList();
+                    if (d.Class.Equals(usedClass))
+                    {
+                        double score = getScore(deckCards, revealedCards);
+                        if (score > maxScore)
+                        {
+                            maxScore = score;
+                            bestDeck = d.Name;
+                        }
+                        Logger.WriteLine(d.Name + " " + maxScore);
+                    }
+                    
+                }
+                _info.Text = "Your opponent was playing" + bestDeck;
+            }
+        }
+
+        public static double getScore(List<Card> deck, List<Card> revealed)
+        {
+            HashSet<Card> cards = new HashSet<Card>();
+            foreach(Card c in deck)
+            {
+                cards.Add(c);
+            }
+            Card[] cardList = cards.ToArray();
+            double[] vecDeck = new double[cardList.Length];
+            double[] vecRevealed = new double[cardList.Length];
+            for (int x = 0; x < cardList.Length; x++)
+            {
+                Card c = cardList[x];
+                vecDeck[x] = deck.FindAll(d => d.Name.Equals(c.Name)).Count;
+                vecRevealed[x] = revealed.FindAll(d => d.Name.Equals(c.Name)).Count;
+            }
+
+            double score = dot(vecDeck,vecRevealed)/magnitude(vecDeck)/magnitude(vecRevealed);
+            return score;
+        }
+
+        private static double dot(double[] v1, double[] v2)
+        {
+            double result = 0;
+            for (int x = 0; x < v1.Length; x++)
+            {
+                result += v1[x] * v2[x];
+            }
+            return result;
+        }
+        private static double magnitude(double[] v)
+        {
+            return Math.Sqrt(dot(v, v));
+        }
 
 		// Set the player controller id, used to tell who controls a particular
 		// entity (card, health etc.)
 		private static void NewGame()
 		{
-			_player = null;
+            _player = null;
 			if (PlayerEntity != null)
 				_player = PlayerEntity.GetTag(GAME_TAG.CONTROLLER);		
 		}
 
 		// Find all cards in the players hand and write to the text block
-		public static void HandInfo(Card c)
+		public static void DeckInfo(Card c)
 		{
 			_info.Text = "";
-
-			if (_player == null)
+            List<CardEntity> revealedCards;
+            if (_player == null)
 				NewGame();
-
-			foreach (var e in Entities)
+            revealedCards = Opponent.RevealedCards;
+            foreach (CardEntity e in revealedCards)
 			{
-				if (e.IsInHand && e.GetTag(GAME_TAG.CONTROLLER) == _player)
-					_info.Text += e.Card + "\n";	
+				//_info.Text += e.Entity.Card.Name + "\n";	
 			}			
 		}
 

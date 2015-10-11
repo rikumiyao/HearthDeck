@@ -30,9 +30,8 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="HearthstoneDeckTracker">
-      <HintPath>..\..\deck-tracker\build\development\HearthstoneDeckTracker.exe</HintPath>
-      <Private>False</Private>
+    <Reference Include="Hearthstone Deck Tracker">
+      <HintPath>..\..\..\..\..\Desktop\Hearthstone Deck Tracker\Hearthstone Deck Tracker.exe</HintPath>
     </Reference>
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
@@ -55,6 +54,9 @@
     <Content Include="card.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <WCFMetadata Include="Service References\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

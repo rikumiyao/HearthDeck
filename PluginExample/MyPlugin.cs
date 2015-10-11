@@ -9,7 +9,7 @@ namespace PluginExample
     {
 		public string Author
 		{
-			get { return "Name"; }
+			get { return "Riku Miyao"; }
 		}
 
 		public string ButtonText
@@ -19,7 +19,7 @@ namespace PluginExample
 
 		public string Description
 		{
-			get { return "Description"; }
+			get { return "Matches decks"; }
 		}
 
 		public MenuItem MenuItem
@@ -29,7 +29,7 @@ namespace PluginExample
 
 		public string Name
 		{
-			get { return "PluginExample"; }
+			get { return "DeckMatcher"; }
 		}
 
 		public void OnButtonPress()
